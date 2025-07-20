@@ -6,14 +6,15 @@ from models.subject import Subject
 from models.topic import Topic
 from database.connection import db
 from sqlalchemy import and_
-from services.azure_openai_service import AzureOpenAIService
+from services.gemini_service_new import GeminiService
 
 class QuestionService:
     def __init__(self):
-        self.openai_service = AzureOpenAIService()
+        self.ai_service = GeminiService()
+        print("🔧 Using Google Gemini API for generating intelligent topic-specific questions.")
 
     def generate_questions(self, subject_id, topic_id=None, num_questions=5, difficulty=None):
-        """Generate questions using Azure OpenAI for a specific subject"""
+        """Generate questions using Google Gemini for a specific subject"""
         try:
             # Verify subject exists
             subject = Subject.query.get(subject_id)
@@ -49,8 +50,8 @@ class QuestionService:
                     'message': 'Question count must be between 1 and 50'
                 }, 400
             
-            # Generate questions using Azure OpenAI - DO NOT save to database for tests
-            generated_questions = self.openai_service.generate_neet_questions(
+            # Generate questions using Google Gemini - DO NOT save to database for tests
+            generated_questions = self.ai_service.generate_neet_questions(
                 subject=subject.name,
                 topic=topic_name,
                 count=num_questions,
@@ -63,10 +64,24 @@ class QuestionService:
                     'message': 'Failed to generate questions. Please try again.'
                 }, 500
             
-            print(f"🔧 DEBUG: Generated questions from Azure OpenAI: {len(generated_questions)}")
+            print(f"🔧 DEBUG: Generated questions from Gemini API: {len(generated_questions)}")
+            
+            # Validate each question has required fields
+            valid_questions = []
             for i, q in enumerate(generated_questions):
-                print(f"  Question {i}: ID={q.get('id')}, Text='{q.get('question_text', 'MISSING')[:30]}...'")
+                if all(key in q for key in ['question_text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']):
+                    print(f"  Question {i}: Text='{q.get('question_text', 'MISSING')[:50]}...'")
+                    valid_questions.append(q)
+                else:
+                    print(f"❌ Question {i} missing required fields")
 
+            if not valid_questions:
+                return {
+                    'success': False,
+                    'message': 'Failed to generate valid questions. Please try again.'
+                }, 500
+
+            generated_questions = valid_questions
             # Return questions directly without saving to database
             # We'll save them when the test is submitted along with user answers
             formatted_questions = []
@@ -74,12 +89,9 @@ class QuestionService:
             random_id = random.randint(1000, 9999)  # Add randomness
             
             for i, q_data in enumerate(generated_questions):
-                # Only override ID if it doesn't exist or is empty
-                if not q_data.get('id'):
-                    q_data['id'] = f"test_{current_time}_{random_id}_{i}"
-                    print(f"🔧 DEBUG: Assigned new ID to question {i}: {q_data['id']}")
-                else:
-                    print(f"🔧 DEBUG: Question {i} already has ID: {q_data['id']}")
+                # Always generate new IDs for fresh questions
+                q_data['id'] = f"test_{current_time}_{random_id}_{i}"
+                print(f"🔧 DEBUG: Assigned ID to question {i}: {q_data['id']}")
                     
                 q_data['subject_id'] = subject_id
                 q_data['topic_id'] = topic_id
@@ -171,13 +183,17 @@ class QuestionService:
             if not subject:
                 return
 
-            # Generate sample questions using Azure OpenAI
-            generated_questions = self.openai_service.generate_neet_questions(
+            # Generate sample questions using Gemini API
+            generated_questions = self.ai_service.generate_neet_questions(
                 subject=subject.name,
                 topic=None,  # Mixed topics for samples
                 count=5,     # Generate 5 sample questions
                 difficulty='medium'
             )
+            
+            if not generated_questions:
+                print("❌ No questions generated from Gemini API")
+                return
             
             for q_data in generated_questions:
                 # Check if question already exists
@@ -200,7 +216,7 @@ class QuestionService:
                         subject_id=subject_id,
                         topic_id=topic_id or 1,
                         difficulty=DifficultyLevel(q_data.get('difficulty', 'medium')),
-                        source='azure_openai'
+                        source='gemini_api'
                     )
                     db.session.add(question)
             
@@ -212,6 +228,6 @@ class QuestionService:
             print(f"Error creating sample questions: {e}")
 
     def _get_sample_questions_data(self, subject_name, topic_id=None):
-        """Deprecated: Now uses Azure OpenAI for all question generation"""
+        """Deprecated: Now uses Gemini API for all question generation"""
         print(f"⚠️ _get_sample_questions_data called for {subject_name} - this method is deprecated")
         return []
