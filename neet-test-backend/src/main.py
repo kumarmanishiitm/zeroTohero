@@ -25,6 +25,16 @@ def create_app():
     # Load configuration
     app.config.from_object(DevelopmentConfig)
     
+    # Root route redirect to API info
+    @app.route('/')
+    def root():
+        return jsonify({
+            'message': 'Welcome to NEET Test Backend API',
+            'api_docs': '/api/v1',
+            'health_check': '/health',
+            'status': 'running'
+        })
+    
     # Enable CORS for all routes
     CORS(app, origins=["*"], supports_credentials=True)
     
@@ -164,6 +174,8 @@ def create_initial_data():
     except Exception as e:
         print(f"Error creating initial data: {e}")
         db.session.rollback()
+
+# Create the application instance for Gunicorn
 app = create_app()
 
 if __name__ == '__main__':
