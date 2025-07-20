@@ -1,9 +1,9 @@
 Flask==2.3.3
 Flask-Cors==4.0.0
-Flask-SQLAlchemy==3.0.5
+Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.0.5
 Flask-JWT-Extended==4.5.3
-SQLAlchemy==2.0.16
+SQLAlchemy==2.0.23
 python-dotenv==1.0.0
 pytest==7.4.2
 pytest-flask==1.2.0
