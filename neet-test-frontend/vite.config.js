@@ -11,6 +11,11 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true
       }
-    }
+    },
+    allowedHosts: [
+      'localhost',
+      'zerotohero-1.onrender.com',
+      'zerotohero-noqw.onrender.com'
+    ]
   }
 })
