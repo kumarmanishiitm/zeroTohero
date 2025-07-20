@@ -164,10 +164,9 @@ def create_initial_data():
     except Exception as e:
         print(f"Error creating initial data: {e}")
         db.session.rollback()
+app = create_app()
 
 if __name__ == '__main__':
-    app = create_app()
-    
     # Development server configuration
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
